@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using bir_fikrim_var.Models;
+using Mapster;
 
 namespace bir_fikrim_var.Controllers
 {
@@ -75,12 +76,19 @@ namespace bir_fikrim_var.Controllers
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<User>> PostUser(User user)
+        public async Task<ActionResult<UserDto>> PostUser(CreateUserDto getFromUser)
         {
+            //we have to adapt the things we get from userdto to user
+            var user = getFromUser.Adapt<User>();
+
+            //save to database 
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetUser", new { id = user.UserId }, user);
+            // respond if ok or no 
+            var result = user.Adapt<UserDto>();
+
+            return CreatedAtAction("GetUser", new { id = user.UserId }, result);
         }
 
         // DELETE: api/Users/5
