@@ -23,24 +23,37 @@ namespace bir_fikrim_var.Controllers
 
         // GET: api/Users
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<User>>> GetUsers()
+        public async Task<ActionResult<IEnumerable<UserDto>>> GetUsers()
         {
-            return await _context.Users.ToListAsync();
+            // 1) Veritabanındaki tüm User kayıtlarını çek
+            var users = await _context.Users.ToListAsync();
+
+            // 2) Entity -> DTO dönüşümü (Mapster)
+            var dtoList = users.Adapt<List<UserDto>>();
+
+            // 3) 200 OK ile DTO listesini döndür
+            return Ok(dtoList);
         }
 
         // GET: api/Users/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<User>> GetUser(int id)
+        [HttpGet("{id}")] // Bu endpoint /api/Users/{id} formatındaki GET isteklerini yakalar
+        public async Task<ActionResult<UserDto>> GetUser(int id)
         {
+            // Veritabanında belirtilen id'ye sahip kullanıcıyı primary key üzerinden bul
             var user = await _context.Users.FindAsync(id);
 
+            // Eğer kullanıcı bulunamazsa 404 Not Found döner
             if (user == null)
-            {
                 return NotFound();
-            }
 
-            return user;
+            // Mapster .Adapt ile User entity -> UserReadDto dönüştürülür
+            // Bu sayede sadece UserReadDto'daki alanlar response'a dahil olur (ör: Password DTO'da yoksa dışarı çıkmaz)
+            var dto = user.Adapt<UserDto>();
+
+            // 200 OK ile birlikte UserReadDto JSON olarak client'a gönderilir
+            return Ok(dto);
         }
+
 
         // PUT: api/Users/5
         [HttpPut("{id}")]
