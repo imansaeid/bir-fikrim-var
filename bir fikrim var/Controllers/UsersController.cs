@@ -43,35 +43,37 @@ namespace bir_fikrim_var.Controllers
         }
 
         // PUT: api/Users/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutUser(int id, User user)
+        public async Task<IActionResult> PutUser(int id, [FromBody] UpdateUserDTO dto)
         {
-            if (id != user.UserId)
-            {
-                return BadRequest();
-            }
+            // 1) Var mı yok mu kontrol et
+            var user = await _context.Users.FirstOrDefaultAsync(u => u.UserId == id);
+            if (user == null)
+                return NotFound(); // 404
 
-            _context.Entry(user).State = EntityState.Modified;
+            // 2) DTO -> Entity map (sadece FullName/Email/Password alanlarını günceller)
+            //    Mapster .Adapt ile mevcut tracked entity'nin üstüne yazıyoruz.
+            dto.Adapt(user);
 
+            // 3) Değişiklikleri kaydet
             try
             {
                 await _context.SaveChangesAsync();
             }
             catch (DbUpdateConcurrencyException)
             {
-                if (!UserExists(id))
-                {
+                // Aynı anda başka biri silmiş/güncellemiş olabilir
+                var stillExists = await _context.Users.AnyAsync(u => u.UserId == id);
+                if (!stillExists)
                     return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
+
+                throw; // beklenmeyen durum: bubble up
             }
 
+            // 4) 204 - içerik yok (başarılı güncelleme)
             return NoContent();
         }
+    
 
         // POST: api/Users
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
