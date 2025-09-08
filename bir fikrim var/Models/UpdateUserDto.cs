@@ -2,7 +2,6 @@
 {
     public class UpdateUserDTO
     {
-        public int UserId { get; set; }      // Güncellenecek kullanıcıyı belirlemek için
         public string FullName { get; set; } // İsim değiştirilebilir
         public string Email { get; set; }    // Mail değiştirilebilir
         public string Password { get; set; } // Şifre değiştirilebilir
