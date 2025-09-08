@@ -19,3 +19,4 @@ public partial class Comment
 
     public virtual User User { get; set; } = null!;
 }
+                        
