@@ -1,0 +1,104 @@
+﻿using bir_fikrim_var.Models;
+using Microsoft.AspNetCore.Mvc;
+using System.Net.Http;
+using System.Net.Http.Json;
+
+
+namespace bir_fikrim_var.Controllers
+{
+    public class IdeasController : Controller
+    {
+        private readonly HttpClient _httpClient;
+
+        public IdeasController(IHttpClientFactory httpClientFactory)
+        {
+            _httpClient = httpClientFactory.CreateClient("ApiClient");
+        }
+
+        // GET: Ideas
+        public async Task<IActionResult> Index()
+        {
+            var ideas = await _httpClient.GetFromJsonAsync<List<IdeaDto>>("api/Ideas");
+            return View(ideas);
+        }
+
+        // GET: Ideas/Details/5
+        public async Task<IActionResult> Details(int id)
+        {
+            var idea = await _httpClient.GetFromJsonAsync<IdeaDto>($"api/Ideas/{id}");
+            if (idea == null) return NotFound();
+            return View(idea);
+        }
+
+        // GET: Ideas/Create
+        public IActionResult Create()
+        {
+            return View();
+        }
+
+        // POST: Ideas/Create
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(CreateIdeaDto dto)
+        {
+            if (ModelState.IsValid)
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/Ideas", dto);
+                if (response.IsSuccessStatusCode)
+                    return RedirectToAction(nameof(Index));
+            }
+            return View(dto);
+        }
+
+        // GET: Ideas/Edit/5
+        public async Task<IActionResult> Edit(int id)
+        {
+            var idea = await _httpClient.GetFromJsonAsync<IdeaDto>($"api/Ideas/{id}");
+            if (idea == null) return NotFound();
+
+            // Fill DTO for editing
+            var dto = new UpdateIdeaDto
+            {
+                Title = idea.Title,
+                Content = idea.Content
+                // add other editable fields if your DTO has them
+            };
+
+            return View(dto);
+        }
+
+        // POST: Ideas/Edit/5
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, UpdateIdeaDto dto)
+        {
+            if (ModelState.IsValid)
+            {
+                var response = await _httpClient.PutAsJsonAsync($"api/Ideas/{id}", dto);
+                if (response.IsSuccessStatusCode)
+                    return RedirectToAction(nameof(Index));
+            }
+            return View(dto);
+        }
+
+        // GET: Ideas/Delete/5
+        public async Task<IActionResult> Delete(int id)
+        {
+            var idea = await _httpClient.GetFromJsonAsync<IdeaDto>($"api/Ideas/{id}");
+            if (idea == null) return NotFound();
+            return View(idea);
+        }
+
+        // POST: Ideas/Delete/5
+        [HttpPost, ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteConfirmed(int id)
+        {
+            var response = await _httpClient.DeleteAsync($"api/Ideas/{id}");
+            if (response.IsSuccessStatusCode)
+                return RedirectToAction(nameof(Index));
+
+            return Problem("Could not delete idea.");
+        }
+    }
+}

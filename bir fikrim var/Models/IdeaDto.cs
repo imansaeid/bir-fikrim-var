@@ -1,6 +1,6 @@
 ﻿namespace bir_fikrim_var.Models
 {
-    public class İdeaDto
+    public class IdeaDto
     {
         public int IdeaId { get; set; }
 
