@@ -1,83 +1,103 @@
-﻿using Microsoft.AspNetCore.Http;
+﻿using bir_fikrim_var.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Net.Http;
+using System.Net.Http.Json;
 
 namespace bir_fikrim_var.Controllers
 {
     public class CommentsController : Controller
     {
-        // GET: CommentsController
-        public ActionResult Index()
+        private readonly HttpClient _httpClient;
+
+        public CommentsController(IHttpClientFactory httpClientFactory)
+        {
+            _httpClient = httpClientFactory.CreateClient("ApiClient");
+        }
+
+        // GET: Comments
+        public async Task<IActionResult> Index()
+        {
+            var comments = await _httpClient.GetFromJsonAsync<List<CommentDto>>("api/Comments");
+            return View(comments);
+        }
+
+        // GET: Comments/Details/5
+        public async Task<IActionResult> Details(int id)
+        {
+            var comment = await _httpClient.GetFromJsonAsync<CommentDto>($"api/Comments/{id}");
+            if (comment == null) return NotFound();
+            return View(comment);
+        }
+
+        // GET: Comments/Create
+        public IActionResult Create()
         {
             return View();
         }
 
-        // GET: CommentsController/Details/5
-        public ActionResult Details(int id)
-        {
-            return View();
-        }
-
-        // GET: CommentsController/Create
-        public ActionResult Create()
-        {
-            return View();
-        }
-
-        // POST: CommentsController/Create
+        // POST: Comments/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Create(IFormCollection collection)
+        public async Task<IActionResult> Create(CreateCommentDTO dto)
         {
-            try
+            if (ModelState.IsValid)
             {
-                return RedirectToAction(nameof(Index));
+                var response = await _httpClient.PostAsJsonAsync("api/Comments", dto);
+                if (response.IsSuccessStatusCode)
+                    return RedirectToAction(nameof(Index));
             }
-            catch
-            {
-                return View();
-            }
+            return View(dto);
         }
 
-        // GET: CommentsController/Edit/5
-        public ActionResult Edit(int id)
+        // GET: Comments/Edit/5
+        public async Task<IActionResult> Edit(int id)
         {
-            return View();
+            var comment = await _httpClient.GetFromJsonAsync<CommentDto>($"api/Comments/{id}");
+            if (comment == null) return NotFound();
+
+            // Fill DTO for editing
+            var dto = new CreateCommentDTO
+            {
+                Content = comment.Content,
+                UserId = comment.UserId,
+                IdeaId = comment.IdeaId
+            };
+
+            return View(dto);
         }
 
-        // POST: CommentsController/Edit/5
+        // POST: Comments/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public ActionResult Edit(int id, IFormCollection collection)
+        public async Task<IActionResult> Edit(int id, CreateCommentDTO dto)
         {
-            try
+            if (ModelState.IsValid)
             {
-                return RedirectToAction(nameof(Index));
+                var response = await _httpClient.PutAsJsonAsync($"api/Comments/{id}", dto);
+                if (response.IsSuccessStatusCode)
+                    return RedirectToAction(nameof(Index));
             }
-            catch
-            {
-                return View();
-            }
+            return View(dto);
         }
 
-        // GET: CommentsController/Delete/5
-        public ActionResult Delete(int id)
+        // GET: Comments/Delete/5
+        public async Task<IActionResult> Delete(int id)
         {
-            return View();
+            var comment = await _httpClient.GetFromJsonAsync<CommentDto>($"api/Comments/{id}");
+            if (comment == null) return NotFound();
+            return View(comment);
         }
 
-        // POST: CommentsController/Delete/5
-        [HttpPost]
+        // POST: Comments/Delete/5
+        [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
-        public ActionResult Delete(int id, IFormCollection collection)
+        public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            try
-            {
+            var response = await _httpClient.DeleteAsync($"api/Comments/{id}");
+            if (response.IsSuccessStatusCode)
                 return RedirectToAction(nameof(Index));
-            }
-            catch
-            {
-                return View();
-            }
+
+            return Problem("Could not delete comment.");
         }
     }
 }
