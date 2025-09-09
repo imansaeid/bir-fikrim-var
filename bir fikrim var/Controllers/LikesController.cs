@@ -55,47 +55,34 @@ namespace bir_fikrim_var.Controllers
         }
 
         // PUT: api/Likes/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutLike(int id, Like like)
-        {
-            if (id != like.LikeId)
-            {
-                return BadRequest();
-            }
+      
 
-            _context.Entry(like).State = EntityState.Modified;
 
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!LikeExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
 
         // POST: api/Likes
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<Like>> PostLike(Like like)
+        public async Task<ActionResult<LikeDto>> PostLike(CreateLikeDto createDto)
         {
+            // 1. Eğer CreatedDate boşsa, şimdiye ayarla
+            if (createDto.CreatedDate == null)
+                createDto.CreatedDate = DateTime.Now;
+
+            // 2. Mapster ile DTO'dan Like entity'si oluştur
+            var like = createDto.Adapt<Like>();
+
+            // 3. Veritabanına yeni Like entity'sini ekle
             _context.Likes.Add(like);
+
+            // 4. Değişiklikleri veritabanına kaydet
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetLike", new { id = like.LikeId }, like);
-        }
+            // 5. Kaydedilen entity'yi LikeDto'ya dönüştür ve client'a dön
+            var dto = like.Adapt<LikeDto>();
 
+            // 6. 201 Created ile birlikte kaydın detaylarını döndür
+            return CreatedAtAction("GetLike", new { id = like.LikeId }, dto);
+        }
         // DELETE: api/Likes/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteLike(int id)
