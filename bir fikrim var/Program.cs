@@ -1,4 +1,4 @@
-using bir_fikrim_var.Models;
+﻿using bir_fikrim_var.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -25,6 +25,13 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+// ✅ Add HttpClient for MVC Controllers to call API
+builder.Services.AddHttpClient("ApiClient", client =>
+{
+    client.BaseAddress = new Uri("https://localhost:7266/");
+    // 🔹 Replace with your actual API base URL if different
+});
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

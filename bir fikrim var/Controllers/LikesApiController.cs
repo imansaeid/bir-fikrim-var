@@ -12,11 +12,11 @@ namespace bir_fikrim_var.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class LikesController : ControllerBase
+    public class LikesApiController : ControllerBase
     {
         private readonly MYDBCONTXT _context;
 
-        public LikesController(MYDBCONTXT context)
+        public LikesApiController(MYDBCONTXT context)
         {
             _context = context;
         }
@@ -57,7 +57,7 @@ namespace bir_fikrim_var.Controllers
         // PUT: api/Likes/5
       
 
-
+[HttpPost]
 
         // POST: api/Likes
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
