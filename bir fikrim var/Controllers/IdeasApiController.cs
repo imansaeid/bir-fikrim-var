@@ -26,17 +26,17 @@ namespace bir_fikrim_var.Controllers
         public async Task<ActionResult<IEnumerable<Idea>>> GetIdeas()
         {
             var ideas = await _context.Ideas.ToListAsync();
-            var dtoList = ideas.Adapt<List<İdeaDto>>();
+            var dtoList = ideas.Adapt<List<IdeaDto>>();
             return Ok(dtoList);
         }
         // GET: api/Ideas/5
         [HttpGet("{id}")]
-        public async Task<ActionResult<İdeaDto>> GetIdea(int id)
+        public async Task<ActionResult<IdeaDto>> GetIdea(int id)
     {
         var idea = await _context.Ideas.FindAsync(id);
         if (idea == null)
             return NotFound();
-        var dto = idea.Adapt<İdeaDto>();
+        var dto = idea.Adapt<IdeaDto>();
         return Ok(dto);
     }
 
@@ -44,7 +44,7 @@ namespace bir_fikrim_var.Controllers
         // PUT: api/Ideas/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutIdea(int id, UpdateİdeaDTO updateDto)
+        public async Task<IActionResult> PutIdea(int id, UpdateIdeaDto updateDto)
         {
             // 1. Veritabanından güncellenecek Idea entity'sini getir
             var existingIdea = await _context.Ideas.FindAsync(id);
@@ -65,7 +65,7 @@ namespace bir_fikrim_var.Controllers
         // POST: api/Ideas
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<İdeaDto>> PostIdea(CreateİdeaDto createDto)
+        public async Task<ActionResult<IdeaDto>> PostIdea(CreateIdeaDto createDto)
         {
             // 1. Mapster ile CreateİdeaDto'dan Idea entity'si oluştur
             var idea = createDto.Adapt<Idea>();
@@ -77,7 +77,7 @@ namespace bir_fikrim_var.Controllers
             await _context.SaveChangesAsync();
 
             // 4. Kaydedilen entity'yi İdeaDto'ya dönüştür ve client'a dön
-            var dto = idea.Adapt<İdeaDto>();
+            var dto = idea.Adapt<IdeaDto>();
 
             // 5. 201 Created ile birlikte kaydın detaylarını döndür
             return CreatedAtAction("GetIdea", new { id = idea.IdeaId }, dto);

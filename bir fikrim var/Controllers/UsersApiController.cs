@@ -53,7 +53,32 @@ namespace bir_fikrim_var.Controllers
             // 200 OK ile birlikte UserReadDto JSON olarak client'a gönderilir
             return Ok(dto);
         }
+        // POST: api/register
+        [HttpPost("register")]
+        public async Task<ActionResult<UserDto>> Register(RegisterUserDto dto)
+        {
+            var user = dto.Adapt<User>();
 
+            _context.Users.Add(user);
+            await _context.SaveChangesAsync();
+
+            var result = user.Adapt<UserDto>();
+            return CreatedAtAction(nameof(GetUser), new { id = user.UserId }, result);
+        }
+
+        // POST: api/login
+        [HttpPost("login")]
+        public async Task<ActionResult<UserDto>> Login(LoginUserDto dto)
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == dto.Email && u.Password == dto.Password);
+            if (user == null)
+            {
+                return Unauthorized("Invalid email or password.");
+            }
+            var result = user.Adapt<UserDto>();
+            return Ok(result);
+        }
 
         // PUT: api/Users/5
         [HttpPut("{id}")]
@@ -88,23 +113,6 @@ namespace bir_fikrim_var.Controllers
         }
     
 
-        // POST: api/Users
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<UserDto>> PostUser(CreateUserDto getFromUser)
-        {
-            //we have to adapt the things we get from userdto to user
-            var user = getFromUser.Adapt<User>();
-
-            //save to database 
-            _context.Users.Add(user);
-            await _context.SaveChangesAsync();
-
-            // respond if ok or no 
-            var result = user.Adapt<UserDto>();
-
-            return CreatedAtAction("GetUser", new { id = user.UserId }, result);
-        }
 
         // DELETE: api/Users/5
         [HttpDelete("{id}")]

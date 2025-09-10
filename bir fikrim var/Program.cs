@@ -23,15 +23,15 @@ builder.Services.AddCors(options =>
                         .AllowAnyHeader()
                         .AllowAnyMethod());
 });
-
-var app = builder.Build();
-
 // ✅ Add HttpClient for MVC Controllers to call API
 builder.Services.AddHttpClient("ApiClient", client =>
 {
-    client.BaseAddress = new Uri("https://localhost:7266/");
+    client.BaseAddress = new Uri("https://localhost:7038/");
     // 🔹 Replace with your actual API base URL if different
 });
+var app = builder.Build();
+
+
 
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())

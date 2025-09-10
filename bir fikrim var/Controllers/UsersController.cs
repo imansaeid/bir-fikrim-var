@@ -29,22 +29,47 @@ namespace bir_fikrim_var.Controllers
             return View(user);
         }
 
-        // GET: Users/Create
-        public IActionResult Create()
+        // GET: Users/Register
+        public IActionResult Register()
         {
             return View();
         }
 
-        // POST: Users/Create
+        // POST: Users/Register
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CreateUserDto dto)
+        public async Task<IActionResult> Register(RegisterUserDto dto)
         {
             if (ModelState.IsValid)
             {
-                var response = await _httpClient.PostAsJsonAsync("api/Users", dto);
+                var response = await _httpClient.PostAsJsonAsync("api/Users/register", dto);
                 if (response.IsSuccessStatusCode)
                     return RedirectToAction(nameof(Index));
+            }
+            return View(dto);
+        }
+
+        // GET: Users/Login
+        public IActionResult Login()
+        {
+            return View();
+        }
+
+        // POST: Users/Login
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Login(LoginUserDto dto)
+        {
+            if (ModelState.IsValid)
+            {
+                var response = await _httpClient.PostAsJsonAsync("api/Users/login", dto);
+                if (response.IsSuccessStatusCode)
+                {
+                    var user = await response.Content.ReadFromJsonAsync<UserDto>();
+                    // optionally: set session/cookie here
+                    return RedirectToAction(nameof(Index));
+                }
+                ModelState.AddModelError("", "Invalid email or password.");
             }
             return View(dto);
         }
@@ -55,12 +80,11 @@ namespace bir_fikrim_var.Controllers
             var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/Users/{id}");
             if (user == null) return NotFound();
 
-            // Fill UpdateUserDTO for editing
             var dto = new UpdateUserDTO
             {
                 FullName = user.FullName,
                 Email = user.Email,
-                Password = "" // ⚠️ optional: leave empty or mask, since we don’t return password in DTO
+                Password = "" // leave blank for security
             };
 
             return View(dto);
