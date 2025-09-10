@@ -24,10 +24,18 @@ builder.Services.AddCors(options =>
                         .AllowAnyMethod());
 });
 // ✅ Add HttpClient for MVC Controllers to call API
+builder.Services.AddHttpContextAccessor();
 builder.Services.AddHttpClient("ApiClient", client =>
 {
     client.BaseAddress = new Uri("https://localhost:7038/");
     // 🔹 Replace with your actual API base URL if different
+});
+
+builder.Services.AddSession(options =>
+{
+    options.IdleTimeout = TimeSpan.FromMinutes(30);
+    options.Cookie.HttpOnly = true;
+    options.Cookie.IsEssential = true;
 });
 var app = builder.Build();
 
@@ -52,13 +60,7 @@ app.UseRouting();
 app.UseCors("AllowAll"); // enable CORS policy
 
 app.UseAuthorization();
-builder.Services.AddDistributedMemoryCache();
-builder.Services.AddSession(options =>
-{
-    options.IdleTimeout = TimeSpan.FromMinutes(30);
-    options.Cookie.HttpOnly = true;
-    options.Cookie.IsEssential = true;
-});
+
 
 
 
