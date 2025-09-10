@@ -17,10 +17,10 @@ namespace bir_fikrim_var.Controllers
         // GET: Users
         public async Task<IActionResult> Index()
         {
-            var users = await _httpClient.GetFromJsonAsync<List<UserDto>>("api/Users");
+            var users = await _httpClient.GetFromJsonAsync<List<UserDto>>("api/UsersApi");
             return View(users);
         }
-
+      
         // GET: Users/Details/5
         public async Task<IActionResult> Details(int id)
         {
