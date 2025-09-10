@@ -1,7 +1,9 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using bir_fikrim_var.Models;
+﻿using bir_fikrim_var.Models;
+using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
 using System.Net.Http.Json;
+using static System.Net.WebRequestMethods;
+using Microsoft.AspNetCore.Http;
 
 namespace bir_fikrim_var.Controllers
 {
@@ -20,11 +22,11 @@ namespace bir_fikrim_var.Controllers
             var users = await _httpClient.GetFromJsonAsync<List<UserDto>>("api/UsersApi");
             return View(users);
         }
-      
+
         // GET: Users/Details/5
         public async Task<IActionResult> Details(int id)
         {
-            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/Users/{id}");
+            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
             if (user == null) return NotFound();
             return View(user);
         }
@@ -42,9 +44,9 @@ namespace bir_fikrim_var.Controllers
         {
             if (ModelState.IsValid)
             {
-                var response = await _httpClient.PostAsJsonAsync("api/Users/register", dto);
+                var response = await _httpClient.PostAsJsonAsync("api/UsersApi/register", dto);
                 if (response.IsSuccessStatusCode)
-                    return RedirectToAction(nameof(Index));
+                    return RedirectToAction("Login");
             }
             return View(dto);
         }
@@ -60,24 +62,38 @@ namespace bir_fikrim_var.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginUserDto dto)
         {
-            if (ModelState.IsValid)
+            var response = await _httpClient.PostAsJsonAsync("api/UsersApi/login", dto);
+            if (response.IsSuccessStatusCode)
             {
-                var response = await _httpClient.PostAsJsonAsync("api/Users/login", dto);
-                if (response.IsSuccessStatusCode)
+                var user = await response.Content.ReadFromJsonAsync<UserDto>();
+                if (user != null)
                 {
-                    var user = await response.Content.ReadFromJsonAsync<UserDto>();
-                    // optionally: set session/cookie here
-                    return RedirectToAction(nameof(Index));
+                    // store in session
+                    HttpContext.Session.SetInt32("UserId", user.UserId);
+                    HttpContext.Session.SetString("FullName", user.FullName);
+                    HttpContext.Session.SetString("Email", user.Email);
+
+                    return RedirectToAction("Index", "Home");
                 }
-                ModelState.AddModelError("", "Invalid email or password.");
+
             }
+
+            ModelState.AddModelError("", "Invalid login attempt.");
             return View(dto);
+        }
+
+        // ---------------- LOGOUT ----------------
+        
+         public IActionResult Logout()
+        {
+            HttpContext.Session.Clear();
+            return RedirectToAction("Login");
         }
 
         // GET: Users/Edit/5
         public async Task<IActionResult> Edit(int id)
         {
-            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/Users/{id}");
+            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
             if (user == null) return NotFound();
 
             var dto = new UpdateUserDTO
@@ -97,7 +113,7 @@ namespace bir_fikrim_var.Controllers
         {
             if (ModelState.IsValid)
             {
-                var response = await _httpClient.PutAsJsonAsync($"api/Users/{id}", dto);
+                var response = await _httpClient.PutAsJsonAsync($"api/UsersApi/{id}", dto);
                 if (response.IsSuccessStatusCode)
                     return RedirectToAction(nameof(Index));
             }
@@ -107,7 +123,7 @@ namespace bir_fikrim_var.Controllers
         // GET: Users/Delete/5
         public async Task<IActionResult> Delete(int id)
         {
-            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/Users/{id}");
+            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
             if (user == null) return NotFound();
             return View(user);
         }
@@ -117,7 +133,7 @@ namespace bir_fikrim_var.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/Users/{id}");
+            var response = await _httpClient.DeleteAsync($"api/UsersApi/{id}");
             if (response.IsSuccessStatusCode)
                 return RedirectToAction(nameof(Index));
 
