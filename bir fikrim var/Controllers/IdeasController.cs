@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.Mvc;
 using System.Net.Http;
 using System.Net.Http.Json;
+using static System.Net.WebRequestMethods;
 
 
 namespace bir_fikrim_var.Controllers
@@ -38,15 +39,23 @@ namespace bir_fikrim_var.Controllers
 
         // POST: Ideas/Create
         [HttpPost]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateIdeaDto dto)
         {
-            if (ModelState.IsValid)
+            // Attach logged-in userId from session
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue)
             {
-                var response = await _httpClient.PostAsJsonAsync("api/Ideas", dto);
-                if (response.IsSuccessStatusCode)
-                    return RedirectToAction(nameof(Index));
+                return RedirectToAction("Login", "Users");
             }
+
+            dto.UserId = userId.Value;
+
+            var response = await _httpClient.PostAsJsonAsync("api/IdeasApi", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction("Index");
+            }
+
             return View(dto);
         }
 
