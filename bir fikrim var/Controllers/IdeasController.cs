@@ -26,9 +26,61 @@ namespace bir_fikrim_var.Controllers
         // GET: Ideas/Details/5
         public async Task<IActionResult> Details(int id)
         {
-            var idea = await _httpClient.GetFromJsonAsync<IdeaDto>($"api/Ideas/{id}");
+            // Load idea
+            var idea = await _httpClient.GetFromJsonAsync<IdeaDto>($"api/IdeasApi/{id}");
             if (idea == null) return NotFound();
-            return View(idea);
+
+            // Load comments
+            var comments = await _httpClient.GetFromJsonAsync<List<CommentDto>>($"api/CommentsApi/idea/{id}");
+
+            // Like count
+            var likeCount = await _httpClient.GetFromJsonAsync<int>($"api/LikesApi/count/{id}");
+
+            // Did current user like?
+            var userId = HttpContext.Session.GetInt32("UserId");
+            bool userLiked = false;
+            if (userId.HasValue)
+            {
+                userLiked = await _httpClient.GetFromJsonAsync<bool>($"api/LikesApi/check/{id}/{userId.Value}");
+            }
+
+            var vm = new IdeasDetailsViewModel
+            {
+                Idea = idea,
+                Comments = comments ?? new List<CommentDto>(),
+                LikeCount = likeCount,
+                UserLiked = userLiked
+            };
+
+            return View(vm);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> AddComment(int ideaId, string content)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return RedirectToAction("Login", "Users");
+
+            var dto = new CreateCommentDto
+            {
+                IdeaId = ideaId,
+                UserId = userId.Value,
+                Content = content
+            };
+
+            await _httpClient.PostAsJsonAsync("api/CommentsApi", dto);
+            return RedirectToAction("Details", new { id = ideaId });
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> ToggleLike(int ideaId)
+        {
+            var userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue) return RedirectToAction("Login", "Users");
+
+            await _httpClient.PostAsJsonAsync("api/LikesApi/toggle", new { IdeaId = ideaId, UserId = userId.Value });
+
+            return RedirectToAction("Details", new { id = ideaId });
         }
 
         // GET: Ideas/Create

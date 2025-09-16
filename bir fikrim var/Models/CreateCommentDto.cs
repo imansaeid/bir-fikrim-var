@@ -1,6 +1,6 @@
 ﻿namespace bir_fikrim_var.Models
 {
-    public class CreateCommentDTO
+    public class CreateCommentDto
     {
         public int IdeaId { get; set; }
         public int UserId { get; set; }
