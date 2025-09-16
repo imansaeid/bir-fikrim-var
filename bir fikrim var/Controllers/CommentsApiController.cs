@@ -50,7 +50,7 @@ namespace bir_fikrim_var.Controllers
         // PUT: api/Comments/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutComment(int id, CreateCommentDTO updateDto)
+        public async Task<IActionResult> PutComment(int id, CreateCommentDto updateDto)
         {
             // 1. Veritabanından güncellenecek Comment entity'sini getir
             var existingComment = await _context.Comments.FindAsync(id);
@@ -74,7 +74,7 @@ namespace bir_fikrim_var.Controllers
         // POST: api/Comments
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<CommentDto>> PostComment(CreateCommentDTO createDto)
+        public async Task<ActionResult<CommentDto>> PostComment(CreateCommentDto createDto)
         {
             // 1. Mapster ile CreateCommentDTO'dan Comment entity'si oluştur
             var comment = createDto.Adapt<Comment>();

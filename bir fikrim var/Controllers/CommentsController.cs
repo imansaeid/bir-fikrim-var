@@ -38,7 +38,7 @@ namespace bir_fikrim_var.Controllers
         // POST: Comments/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(CreateCommentDTO dto)
+        public async Task<IActionResult> Create(CreateCommentDto dto)
         {
             if (ModelState.IsValid)
             {
@@ -56,7 +56,7 @@ namespace bir_fikrim_var.Controllers
             if (comment == null) return NotFound();
 
             // Fill DTO for editing
-            var dto = new CreateCommentDTO
+            var dto = new CreateCommentDto
             {
                 Content = comment.Content,
                 UserId = comment.UserId,
@@ -69,7 +69,7 @@ namespace bir_fikrim_var.Controllers
         // POST: Comments/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, CreateCommentDTO dto)
+        public async Task<IActionResult> Edit(int id, CreateCommentDto dto)
         {
             if (ModelState.IsValid)
             {

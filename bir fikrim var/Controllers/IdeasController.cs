@@ -20,6 +20,15 @@ namespace bir_fikrim_var.Controllers
         public async Task<IActionResult> Index()
         {
             var ideas = await _httpClient.GetFromJsonAsync<List<IdeaDto>>("api/Ideas");
+
+            foreach (var idea in ideas)
+            {
+                // Get like count
+                idea.LikeCount = await _httpClient.GetFromJsonAsync<int>($"api/LikesApi/count/{idea.IdeaId}");
+
+                // Get comment count
+                idea.CommentCount = await _httpClient.GetFromJsonAsync<int>($"api/CommentsApi/count/{idea.IdeaId}");
+            }
             return View(ideas);
         }
 
