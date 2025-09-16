@@ -170,5 +170,38 @@ namespace bir_fikrim_var.Controllers
 
             return Problem("Could not delete idea.");
         }
+        [HttpPost]
+        public async Task<IActionResult> ToggleLike(int ideaId)
+        {
+            int? userId = HttpContext.Session.GetInt32("UserId");
+            if (!userId.HasValue)
+            {
+                return RedirectToAction("Login", "Users");
+            }
+
+            // Check if already liked
+            var hasLiked = await _httpClient.GetFromJsonAsync<bool>($"api/LikesApi/check/{ideaId}/{userId.Value}");
+
+            if (hasLiked)
+            {
+                // Find like entry
+                var likes = await _httpClient.GetFromJsonAsync<List<LikeDto>>("api/LikesApi");
+                var userLike = likes.FirstOrDefault(l => l.IdeaId == ideaId && l.UserId == userId.Value);
+                if (userLike != null)
+                {
+                    await _httpClient.DeleteAsync($"api/LikesApi/{userLike.LikeId}");
+                }
+            }
+            else
+            {
+                // Add like
+                var dto = new CreateLikeDto { IdeaId = ideaId, UserId = userId.Value };
+                await _httpClient.PostAsJsonAsync("api/LikesApi", dto);
+            }
+
+            // Redirect back to idea details
+            return RedirectToAction("Details", new { id = ideaId });
+        }
+
     }
 }
