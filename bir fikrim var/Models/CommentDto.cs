@@ -12,5 +12,8 @@
 
         public DateTime? CreatedDate { get; set; }
 
+        public string authorName { get; set; } = null!;
+
+
     }
 }
