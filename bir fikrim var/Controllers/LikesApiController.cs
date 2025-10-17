@@ -1,14 +1,14 @@
-﻿using bir_fikrim_var.Models;
-using Mapster;
-using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using Mapster;
+using bir_fikrim_var.Models;
 
-namespace bir_fikrim_var.Controllers
+namespace BirFikrimVar.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -21,76 +21,81 @@ namespace bir_fikrim_var.Controllers
             _context = context;
         }
 
-        // GET: api/Likes
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<LikeDto>>> GetLikes()
+        public async Task<ActionResult<IEnumerable<LikeResponseDto>>> GetLikes()
         {
-            // 1. Veritabanındaki tüm Like kayıtlarını asenkron olarak al
-            var likes = await _context.Likes.ToListAsync();
-
-            // 2. Mapster ile entity listesini DTO listesine dönüştür
-            var dtoList = likes.Adapt<List<LikeDto>>();
-
-            // 3. DTO listesini 200 OK ile döndür
-            return Ok(dtoList);
+            var res = await _context.Likes
+                .Include(like => like.User)
+                .Select(like => new LikeResponseDto
+                {
+                    LikeId = like.LikeId,
+                    IdeaId = like.IdeaId,
+                    UserId = like.UserId,
+                    FullName = like.User.FullName,
+                    CreatedDate = like.CreatedDate ?? DateTime.UtcNow
+                })
+                .ToListAsync();
+            return res;
         }
 
-        // GET: api/Likes/5
-
-        [HttpGet("{id}")]
-        public async Task<ActionResult<LikeDto>> GetLike(int id)
+        [HttpGet("count/{ideaId}")]
+        public async Task<ActionResult<int>> GetLikeCount(int ideaId)
         {
-            // 1. Veritabanından primary key ile Like entity'sini asenkron olarak getir
-            var like = await _context.Likes.FindAsync(id);
-
-            // 2. Eğer böyle bir kayıt yoksa 404 Not Found dön
-            if (like == null)
-                return NotFound();
-
-            // 3. Mapster ile Like entity'sini LikeDto'ya dönüştür
-            var dto = like.Adapt<LikeDto>();
-
-            // 4. 200 OK ile DTO'yu JSON olarak client'a gönder
-            return Ok(dto);
+            return await _context.Likes.CountAsync(like => like.IdeaId == ideaId);
         }
 
-        // PUT: api/Likes/5
-      
-
-[HttpPost]
-
-        // POST: api/Likes
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
         [HttpPost]
-        public async Task<ActionResult<LikeDto>> PostLike(CreateLikeDto createDto)
+        public async Task<ActionResult<LikeResponseDto>> PostLike(CreateLikeDto dto)
         {
-            // 1. Eğer CreatedDate boşsa, şimdiye ayarla
-            if (createDto.CreatedDate == null)
-                createDto.CreatedDate = DateTime.Now;
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(ModelState);
+            }
 
-            // 2. Mapster ile DTO'dan Like entity'si oluştur
-            var like = createDto.Adapt<Like>();
+            var existingLike = await _context.Likes
+                .FirstOrDefaultAsync(l => l.IdeaId == dto.IdeaId && l.UserId == dto.UserId);
 
-            // 3. Veritabanına yeni Like entity'sini ekle
+            if (existingLike != null)
+            {
+                return Conflict("User has already liked this idea.");
+            }
+
+            var ideaExists = await _context.Ideas.AnyAsync(i => i.IdeaId == dto.IdeaId);
+            if (!ideaExists)
+            {
+                return BadRequest("Idea does not exist.");
+            }
+
+            var userExists = await _context.Users.AnyAsync(u => u.UserId == dto.UserId);
+            if (!userExists)
+            {
+                return BadRequest("User does not exist.");
+            }
+
+            var like = dto.Adapt<Like>();
+            like.CreatedDate = DateTime.Now;
+
             _context.Likes.Add(like);
-
-            // 4. Değişiklikleri veritabanına kaydet
             await _context.SaveChangesAsync();
 
-            // 5. Kaydedilen entity'yi LikeDto'ya dönüştür ve client'a dön
-            var dto = like.Adapt<LikeDto>();
+            var createdLike = await _context.Likes
+                .Include(l => l.User)
+                .FirstAsync(l => l.LikeId == like.LikeId);
 
-            // 6. 201 Created ile birlikte kaydın detaylarını döndür
-            return CreatedAtAction("GetLike", new { id = like.LikeId }, dto);
+            var result = createdLike.Adapt<LikeResponseDto>();
+
+            return CreatedAtAction(nameof(GetLikes), new { id = like.LikeId }, result);
         }
-        // DELETE: api/Likes/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteLike(int id)
+
+        [HttpDelete("{ideaId}/{userId}")]
+        public async Task<IActionResult> DeleteLike(int ideaId, int userId)
         {
-            var like = await _context.Likes.FindAsync(id);
+            var like = await _context.Likes
+                .FirstOrDefaultAsync(l => l.IdeaId == ideaId && l.UserId == userId);
+
             if (like == null)
             {
-                return NotFound();
+                return NotFound("Like not found.");
             }
 
             _context.Likes.Remove(like);
@@ -99,9 +104,10 @@ namespace bir_fikrim_var.Controllers
             return NoContent();
         }
 
-        private bool LikeExists(int id)
+        [HttpGet("check/{ideaId}/{userId}")]
+        public async Task<ActionResult<bool>> CheckUserLiked(int ideaId, int userId)
         {
-            return _context.Likes.Any(e => e.LikeId == id);
+            return await _context.Likes.AnyAsync(like => like.IdeaId == ideaId && like.UserId == userId);
         }
     }
 }

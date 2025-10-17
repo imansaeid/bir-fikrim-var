@@ -1,72 +1,57 @@
 ﻿using bir_fikrim_var.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using System.Net.Http.Json;
 
-namespace bir_fikrim_var.Controllers
+namespace BirFikrimVar.Controllers
 {
     public class LikesController : Controller
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClient _http;
 
         public LikesController(IHttpClientFactory httpClientFactory)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient");
+            _http = httpClientFactory.CreateClient("ApiClient");
         }
 
-        // GET: Likes
         public async Task<IActionResult> Index()
         {
-            var likes = await _httpClient.GetFromJsonAsync<List<LikeDto>>("api/Likes");
+            var likes = await _http.GetFromJsonAsync<List<LikeResponseDto>>("api/LikesApi");
             return View(likes);
         }
 
-        // GET: Likes/Details/5
-        public async Task<IActionResult> Details(int id)
-        {
-            var like = await _httpClient.GetFromJsonAsync<LikeDto>($"api/Likes/{id}");
-            if (like == null) return NotFound();
-            return View(like);
-        }
-
-        // GET: Likes/Create
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: Likes/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateLikeDto dto)
         {
-            if (ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
-                var response = await _httpClient.PostAsJsonAsync("api/Likes", dto);
-                if (response.IsSuccessStatusCode)
-                    return RedirectToAction(nameof(Index));
+                return View(dto);
             }
+
+            var response = await _http.PostAsJsonAsync("api/LikesApi", dto);
+            if (response.IsSuccessStatusCode)
+            {
+                return RedirectToAction(nameof(Index));
+            }
+
+            ModelState.AddModelError("", "Failed to create like.");
             return View(dto);
         }
 
-        // GET: Likes/Delete/5
-        public async Task<IActionResult> Delete(int id)
-        {
-            var like = await _httpClient.GetFromJsonAsync<LikeDto>($"api/Likes/{id}");
-            if (like == null) return NotFound();
-            return View(like);
-        }
-
-        // POST: Likes/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/Likes/{id}");
+            var response = await _http.DeleteAsync($"api/LikesApi/{id}");
             if (response.IsSuccessStatusCode)
+            {
                 return RedirectToAction(nameof(Index));
-
-            return Problem("Could not delete like.");
+            }
+            return Problem("Failed to delete like.");
         }
     }
 }
