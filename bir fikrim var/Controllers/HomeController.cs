@@ -1,5 +1,7 @@
 using bir_fikrim_var.Models;
+using BirFikrimVar.Models;
 using Microsoft.AspNetCore.Mvc;
+using System.Diagnostics;
 
 namespace BirFikrimVar.Controllers
 {
@@ -12,16 +14,25 @@ namespace BirFikrimVar.Controllers
             _http = httpClientFactory.CreateClient("ApiClient");
         }
 
-        // GET: /Home/Index
         public async Task<IActionResult> Index()
         {
             var ideas = await _http.GetFromJsonAsync<List<IdeaDto>>("api/IdeasApi");
 
-            // Safety check
             if (ideas == null)
                 ideas = new List<IdeaDto>();
 
             return View(ideas);
+        }
+
+        public IActionResult Privacy()
+        {
+            return View();
+        }
+
+        [ResponseCache(Duration = 0, Location = ResponseCacheLocation.None, NoStore = true)]
+        public IActionResult Error()
+        {
+            return View(new ErrorViewModel { RequestId = Activity.Current?.Id ?? HttpContext.TraceIdentifier });
         }
     }
 }
