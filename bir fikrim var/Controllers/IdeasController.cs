@@ -81,16 +81,7 @@ namespace bir_fikrim_var.Controllers
             return RedirectToAction("Details", new { id = ideaId });
         }
 
-        [HttpPost]
-        public async Task<IActionResult> ToggleLike(int ideaId)
-        {
-            var userId = HttpContext.Session.GetInt32("UserId");
-            if (!userId.HasValue) return RedirectToAction("Login", "Users");
 
-            await _httpClient.PostAsJsonAsync("api/LikesApi/toggle", new { IdeaId = ideaId, UserId = userId.Value });
-
-            return RedirectToAction("Details", new { id = ideaId });
-        }
 
         // GET: Ideas/Create
         public IActionResult Create()
@@ -189,7 +180,7 @@ namespace bir_fikrim_var.Controllers
                 var userLike = likes.FirstOrDefault(l => l.IdeaId == ideaId && l.UserId == userId.Value);
                 if (userLike != null)
                 {
-                    await _httpClient.DeleteAsync($"api/LikesApi/{userLike.LikeId}");
+                    await _httpClient.DeleteAsync($"api/LikesApi/{userLike.UserId}");
                 }
             }
             else
