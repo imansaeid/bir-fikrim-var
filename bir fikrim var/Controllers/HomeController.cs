@@ -1,5 +1,4 @@
 using bir_fikrim_var.Models;
-using BirFikrimVar.Models;
 using Microsoft.AspNetCore.Mvc;
 using System.Diagnostics;
 

@@ -1,5 +1,4 @@
 ﻿using bir_fikrim_var.Models;
-using BirFikrimVar.Models;
 using Mapster;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;

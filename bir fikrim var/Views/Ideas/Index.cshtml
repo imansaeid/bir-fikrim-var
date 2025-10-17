@@ -4,32 +4,31 @@
     ViewData["Title"] = "Ideas Feed";
 }
 
-<h2>Ideas Feed</h2>
+<div class="container" style="max-width: 650px;">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h4 class="mb-0">Ideas Feed 📰</h4>
 
-@foreach (var idea in Model)
-{
-    <div class="card mb-3">
-        <div class="card-body">
-            <h5 class="card-title">@idea.Title</h5>
-            <p class="card-text">@idea.Content.Substring(0, Math.Min(100, idea.Content.Length))...</p>
-            <p class="card-text">
-                <small class="text-muted">By @idea.AuthorName on @idea.CreatedDate.("g")</small>
-            </p>
-
-            <p>
-                👍 @idea.LikeCount &nbsp;&nbsp;
-                💬 @idea.CommentCount
-            </p>
-
-            <a asp-action="Details" asp-route-id="@idea.IdeaId" class="btn btn-primary">View Details</a>
-
-            @if (Context.Session.GetInt32("UserId") != null)
-            {
-                <form asp-action="ToggleLike" method="post" style="display:inline;">
-                    <input type="hidden" name="ideaId" value="@idea.IdeaId" />
-                    <button type="submit" class="btn btn-outline-success">Like</button>
-                </form>
-            }
-        </div>
+        <form method="get" asp-controller="Ideas" asp-action="Index">
+            <select name="sortBy" class="form-select form-select-sm" onchange="this.form.submit()">
+                <option value="newest" selected="@("newest" == (string)ViewBag.SortBy)">Newest</option>
+                <option value="likes" selected="@("likes" == (string)ViewBag.SortBy)">Most Liked</option>
+                <option value="comments" selected="@("comments" == (string)ViewBag.SortBy)">Most Commented</option>
+            </select>
+        </form>
     </div>
-}
+
+    @if (Model != null && Model.Any())
+    {
+        foreach (var idea in Model)
+        {
+            @Html.Partial("_IdeaCard", idea)
+        }
+    }
+    else
+    {
+        <div class="alert alert-light border text-center">
+            No ideas yet. Be the first to
+            <a asp-controller="Ideas" asp-action="Create">post one!</a>
+        </div>
+    }
+</div>

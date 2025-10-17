@@ -1,23 +1,56 @@
 ﻿@model List<IdeaDto>
 
 @{
-    ViewData["Title"] = "Home - Ideas Feed";
+    var userId = Context.Session.GetInt32("UserId");
+    bool isLoggedIn = userId.HasValue;
+    ViewData["Title"] = "Home";
 }
 
-<h2 class="mb-4">Latest Ideas</h2>
+@if (!isLoggedIn)
+{
+    <div class="container py-5 text-center">
+        <h1 class="display-4 fw-bold">
+            Welcome to <span class="text-primary">BirFikrimVar</span>
+        </h1>
+        <p class="lead mt-3">
+            This is a platform where students can share their creative ideas 💡, collaborate,
+            and get feedback. To get started, please
+            <a asp-controller="Users" asp-action="Login" class="fw-semibold">Login</a> or
+            <a asp-controller="Users" asp-action="Register" class="fw-semibold">Register</a>.
+        </p>
+        <p class="text-muted mt-4">
+            Once logged in, you’ll be able to post your own ideas and explore what others are working on.
+        </p>
+    </div>
+}
+else
+{
+    <div class="container" style="max-width: 650px;">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h4 class="mb-0">Ideas Feed 📰</h4>
 
-<div class="row">
-    @if (Model != null && Model.Any())
-    {
-        foreach (var idea in Model)
+            <form method="get" asp-controller="Ideas" asp-action="Index">
+                <select name="sortBy" class="form-select form-select-sm" onchange="this.form.submit()">
+                    <option value="newest" selected="@("newest" == (string)ViewBag.SortBy)">Newest</option>
+                    <option value="likes" selected="@("likes" == (string)ViewBag.SortBy)">Most Liked</option>
+                    <option value="comments" selected="@("comments" == (string)ViewBag.SortBy)">Most Commented</option>
+                </select>
+            </form>
+        </div>
+
+        @if (Model != null && Model.Any())
         {
-            <div class="col-md-6 mb-4">
+            foreach (var idea in Model)
+            {
                 @Html.Partial("_IdeaCard", idea)
+            }
+        }
+        else
+        {
+            <div class="alert alert-light border text-center">
+                No ideas yet. Be the first to
+                <a asp-controller="Ideas" asp-action="Create">post one!</a>
             </div>
         }
-    }
-    else
-    {
-        <p>No ideas yet. Be the first to post one!</p>
-    }
-</div>
+    </div>
+}

@@ -1,12 +1,12 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using bir_fikrim_var.Models;
+using Mapster;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using Mapster;
-using bir_fikrim_var.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace BirFikrimVar.Controllers
 {
@@ -21,27 +21,16 @@ namespace BirFikrimVar.Controllers
             _context = context;
         }
 
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<LikeResponseDto>>> GetLikes()
-        {
-            var res = await _context.Likes
-                .Include(like => like.User)
-                .Select(like => new LikeResponseDto
-                {
-                    LikeId = like.LikeId,
-                    IdeaId = like.IdeaId,
-                    UserId = like.UserId,
-                    FullName = like.User.FullName,
-                    CreatedDate = like.CreatedDate ?? DateTime.UtcNow
-                })
-                .ToListAsync();
-            return res;
-        }
-
         [HttpGet("count/{ideaId}")]
         public async Task<ActionResult<int>> GetLikeCount(int ideaId)
         {
             return await _context.Likes.CountAsync(like => like.IdeaId == ideaId);
+        }
+
+        [HttpGet("check/{ideaId}/{userId}")]
+        public async Task<ActionResult<bool>> CheckUserLiked(int ideaId, int userId)
+        {
+            return await _context.Likes.AnyAsync(like => like.IdeaId == ideaId && like.UserId == userId);
         }
 
         [HttpPost]
@@ -60,18 +49,6 @@ namespace BirFikrimVar.Controllers
                 return Conflict("User has already liked this idea.");
             }
 
-            var ideaExists = await _context.Ideas.AnyAsync(i => i.IdeaId == dto.IdeaId);
-            if (!ideaExists)
-            {
-                return BadRequest("Idea does not exist.");
-            }
-
-            var userExists = await _context.Users.AnyAsync(u => u.UserId == dto.UserId);
-            if (!userExists)
-            {
-                return BadRequest("User does not exist.");
-            }
-
             var like = dto.Adapt<Like>();
             like.CreatedDate = DateTime.Now;
 
@@ -88,7 +65,7 @@ namespace BirFikrimVar.Controllers
         }
 
         [HttpDelete("{ideaId}/{userId}")]
-        public async Task<IActionResult> DeleteLike(int ideaId, int userId)
+        public async Task<IActionResult> UnlikeIdea(int ideaId, int userId)
         {
             var like = await _context.Likes
                 .FirstOrDefaultAsync(l => l.IdeaId == ideaId && l.UserId == userId);
@@ -104,10 +81,16 @@ namespace BirFikrimVar.Controllers
             return NoContent();
         }
 
-        [HttpGet("check/{ideaId}/{userId}")]
-        public async Task<ActionResult<bool>> CheckUserLiked(int ideaId, int userId)
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<LikeResponseDto>>> GetLikes()
         {
-            return await _context.Likes.AnyAsync(like => like.IdeaId == ideaId && like.UserId == userId);
+            var res = await _context.Likes
+                .Include(like => like.User)
+                .Select(like => like.Adapt<LikeResponseDto>())
+                .ToListAsync();
+
+            return res;
         }
     }
 }
+
