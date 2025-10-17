@@ -1,142 +1,154 @@
 ﻿using bir_fikrim_var.Models;
 using Microsoft.AspNetCore.Mvc;
-using System.Net.Http;
-using System.Net.Http.Json;
-using static System.Net.WebRequestMethods;
-using Microsoft.AspNetCore.Http;
 
-namespace bir_fikrim_var.Controllers
+namespace BirFikrimVar.Controllers
 {
     public class UsersController : Controller
     {
-        private readonly HttpClient _httpClient;
+        private readonly HttpClient _http;
 
         public UsersController(IHttpClientFactory httpClientFactory)
         {
-            _httpClient = httpClientFactory.CreateClient("ApiClient");
+            _http = httpClientFactory.CreateClient("ApiClient");
         }
 
-        // GET: Users
+        public async Task<IActionResult> Profile(int? id)
+        {
+            var loggedInUserId = HttpContext.Session.GetInt32("UserId");
+
+            if (!id.HasValue)
+            {
+                if (loggedInUserId == null)
+                {
+                    return RedirectToAction("Login");
+                }
+                id = loggedInUserId;
+            }
+
+            var user = await _http.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
+            if (user == null)
+            {
+                return NotFound();
+            }
+
+            var ideas = await _http.GetFromJsonAsync<List<IdeaDto>>($"api/IdeasApi/user/{id}") ?? new List<IdeaDto>();
+
+            var model = new UserProfileDto
+            {
+                User = user,
+                Ideas = ideas,
+                IsOwnProfile = (loggedInUserId.HasValue && loggedInUserId.Value == id.Value)
+            };
+
+            return View(model);
+        }
+
         public async Task<IActionResult> Index()
         {
-            var users = await _httpClient.GetFromJsonAsync<List<UserDto>>("api/UsersApi");
+            var users = await _http.GetFromJsonAsync<List<UserDto>>("api/UsersApi");
             return View(users);
         }
 
-        // GET: Users/Details/5
-        public async Task<IActionResult> Details(int id)
-        {
-            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
-            if (user == null) return NotFound();
-            return View(user);
-        }
-
-        // GET: Users/Register
         public IActionResult Register()
         {
             return View();
         }
 
-        // POST: Users/Register
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterUserDto dto)
         {
             if (ModelState.IsValid)
             {
-                var response = await _httpClient.PostAsJsonAsync("api/UsersApi/register", dto);
+                var response = await _http.PostAsJsonAsync("api/UsersApi/register", dto);
                 if (response.IsSuccessStatusCode)
+                {
                     return RedirectToAction("Login");
+                }
+                ModelState.AddModelError("", "Registration failed. Please try again.");
             }
             return View(dto);
         }
 
-        // GET: Users/Login
         public IActionResult Login()
         {
             return View();
         }
 
-        // POST: Users/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginUserDto dto)
         {
-            var response = await _httpClient.PostAsJsonAsync("api/UsersApi/login", dto);
-            if (response.IsSuccessStatusCode)
+            if (ModelState.IsValid)
             {
-                var user = await response.Content.ReadFromJsonAsync<UserDto>();
-                if (user != null)
+                var response = await _http.PostAsJsonAsync("api/UsersApi/login", dto);
+                if (response.IsSuccessStatusCode)
                 {
-                    // store in session
-                    HttpContext.Session.SetInt32("UserId", user.UserId);
-                    HttpContext.Session.SetString("FullName", user.FullName);
-                    HttpContext.Session.SetString("Email", user.Email);
-
-                    return RedirectToAction("Index", "Home");
+                    var user = await response.Content.ReadFromJsonAsync<UserDto>();
+                    if (user != null)
+                    {
+                        HttpContext.Session.SetInt32("UserId", user.UserId);
+                        HttpContext.Session.SetString("FullName", user.FullName);
+                        HttpContext.Session.SetString("Email", user.Email);
+                        return RedirectToAction("Index", "Home");
+                    }
                 }
-
             }
-
-            ModelState.AddModelError("", "Invalid login attempt.");
+            ModelState.AddModelError("", "Invalid email or password.");
             return View(dto);
         }
 
-        // ---------------- LOGOUT ----------------
-        
-         public IActionResult Logout()
+        public IActionResult Logout()
         {
             HttpContext.Session.Clear();
             return RedirectToAction("Login");
         }
 
-        // GET: Users/Edit/5
         public async Task<IActionResult> Edit(int id)
         {
-            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
+            var user = await _http.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
             if (user == null) return NotFound();
 
             var dto = new UpdateUserDTO
             {
                 FullName = user.FullName,
                 Email = user.Email,
-                Password = "" // leave blank for security
+                Password = ""
             };
-
             return View(dto);
         }
 
-        // POST: Users/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, UpdateUserDTO dto)
         {
             if (ModelState.IsValid)
             {
-                var response = await _httpClient.PutAsJsonAsync($"api/UsersApi/{id}", dto);
+                var response = await _http.PutAsJsonAsync($"api/UsersApi/{id}", dto);
                 if (response.IsSuccessStatusCode)
+                {
                     return RedirectToAction(nameof(Index));
+                }
             }
             return View(dto);
         }
 
-        // GET: Users/Delete/5
         public async Task<IActionResult> Delete(int id)
         {
-            var user = await _httpClient.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
+            var user = await _http.GetFromJsonAsync<UserDto>($"api/UsersApi/{id}");
             if (user == null) return NotFound();
             return View(user);
         }
 
-        // POST: Users/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var response = await _httpClient.DeleteAsync($"api/UsersApi/{id}");
+            var response = await _http.DeleteAsync($"api/UsersApi/{id}");
             if (response.IsSuccessStatusCode)
+            {
                 return RedirectToAction(nameof(Index));
-
+            }
             return Problem("Could not delete user.");
         }
     }

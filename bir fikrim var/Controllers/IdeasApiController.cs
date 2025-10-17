@@ -1,14 +1,15 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
+﻿using bir_fikrim_var.Models;
+using BirFikrimVar.Models;
+using Mapster;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using bir_fikrim_var.Models;
-using Mapster;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-namespace bir_fikrim_var.Controllers
+namespace BirFikrimVar.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
@@ -21,69 +22,115 @@ namespace bir_fikrim_var.Controllers
             _context = context;
         }
 
-        // GET: api/Ideas
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Idea>>> GetIdeas()
+        [HttpGet("user/{userId}")]
+        public async Task<ActionResult<IEnumerable<IdeaDto>>> GetIdeasByUser(int userId)
         {
-            var ideas = await _context.Ideas.ToListAsync();
-            var dtoList = ideas.Adapt<List<IdeaDto>>();
-            return Ok(dtoList);
+            var ideas = await _context.Ideas
+                .Where(i => i.UserId == userId)
+                .OrderByDescending(i => i.CreatedDate)
+                .Select(i => new IdeaDto
+                {
+                    IdeaId = i.IdeaId,
+                    Title = i.Title,
+                    Content = i.Content,
+                    CreatedDate = i.CreatedDate,
+                    UserId = i.UserId,
+                    LikeCount = i.Likes.Count,
+                    CommentCount = i.Comments.Count,
+                    AuthorName = i.User.FullName
+                })
+                .ToListAsync();
+
+            return ideas;
         }
-        // GET: api/Ideas/5
+
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<IdeaDto>>> GetIdeas()
+        {
+            var ideas = await _context.Ideas
+                .Include(i => i.User)
+                .Select(i => new IdeaDto
+                {
+                    IdeaId = i.IdeaId,
+                    Title = i.Title,
+                    Content = i.Content,
+                    AuthorName = i.User.FullName,
+                    CreatedDate = i.CreatedDate,
+                    LikeCount = i.Likes.Count(),
+                    CommentCount = i.Comments.Count()
+                })
+                .ToListAsync();
+
+            return Ok(ideas);
+        }
+
         [HttpGet("{id}")]
         public async Task<ActionResult<IdeaDto>> GetIdea(int id)
-    {
-        var idea = await _context.Ideas.FindAsync(id);
-        if (idea == null)
-            return NotFound();
-        var dto = idea.Adapt<IdeaDto>();
-        return Ok(dto);
-    }
-
-
-        // PUT: api/Ideas/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutIdea(int id, UpdateIdeaDto updateDto)
         {
-            // 1. Veritabanından güncellenecek Idea entity'sini getir
-            var existingIdea = await _context.Ideas.FindAsync(id);
+            var idea = await _context.Ideas
+                .Include(i => i.User)
+                .FirstOrDefaultAsync(i => i.IdeaId == id);
 
-            // 2. Eğer böyle bir kayıt yoksa 404 Not Found dön
-            if (existingIdea == null)
+            if (idea == null)
+            {
                 return NotFound();
+            }
 
-            // 3. Mapster ile DTO'daki alanları entity'ye kopyala
-            updateDto.Adapt(existingIdea);
+            var ideaDto = new IdeaDto
+            {
+                IdeaId = idea.IdeaId,
+                Title = idea.Title,
+                Content = idea.Content,
+                CreatedDate = idea.CreatedDate,
+                UserId = idea.UserId,
+                AuthorName = idea.User?.FullName
+            };
 
-                await _context.SaveChangesAsync(); // 5. Değişiklikleri veritabanına kaydet
-          
-                return NoContent();
-            
+            return ideaDto;
         }
 
-        // POST: api/Ideas
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPost]
-        public async Task<ActionResult<IdeaDto>> PostIdea(CreateIdeaDto createDto)
+        [HttpPut("{id}")]
+        public async Task<IActionResult> PutIdea(int id, UpdateIdeaDto dto)
         {
-            // 1. Mapster ile CreateİdeaDto'dan Idea entity'si oluştur
-            var idea = createDto.Adapt<Idea>();
+            var idea = await _context.Ideas.FindAsync(id);
+            if (idea == null || id != idea.IdeaId)
+            {
+                return BadRequest();
+            }
 
-            // 2. Veritabanına yeni Idea entity'sini ekle
+            dto.Adapt(idea);
+
+            try
+            {
+                await _context.SaveChangesAsync();
+            }
+            catch (DbUpdateConcurrencyException)
+            {
+                if (!IdeaExists(id))
+                {
+                    return NotFound();
+                }
+                else
+                {
+                    throw;
+                }
+            }
+
+            return NoContent();
+        }
+
+        [HttpPost]
+        public async Task<ActionResult<Idea>> PostIdea(CreateIdeaDto dto)
+        {
+            var idea = dto.Adapt<Idea>();
+            idea.CreatedDate = DateTime.Now;
+
             _context.Ideas.Add(idea);
-
-            // 3. Değişiklikleri veritabanına kaydet
             await _context.SaveChangesAsync();
 
-            // 4. Kaydedilen entity'yi İdeaDto'ya dönüştür ve client'a dön
-            var dto = idea.Adapt<IdeaDto>();
-
-            // 5. 201 Created ile birlikte kaydın detaylarını döndür
-            return CreatedAtAction("GetIdea", new { id = idea.IdeaId }, dto);
+            return CreatedAtAction("GetIdea", new { id = idea.IdeaId }, idea);
         }
 
-        // DELETE: api/Ideas/5
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteIdea(int id)
         {
